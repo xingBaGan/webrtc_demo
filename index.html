@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <video id="localVideo" autoplay muted></video>
+    <script>
+      function wsConnect() {
+        const ws = new WebSocket("ws://localhost:8001");
+        ws.onopen = () => {
+          console.log("WebSocket connection opened1");
+        };
+        ws.onmessage = (event) => {
+          console.log("Received message:", event.data);
+        };
+      }
+
+      function wsSend(data) {
+        ws.send(data);
+      }
+      wsConnect();
+      const pc1 = new RTCPeerConnection();
+      pc1.addEventListener("icecandidate", async (e) => {
+        if (e.candidate) {
+          await pc2.addIceCandidate(e.candidate);
+        }
+      });
+      pc1.addEventListener("iceconnectionstatechange", (e) => {
+        console.log("pc1: iceconnectionstatechange", e);
+      });
+
+      const localVideo = document.querySelector("#localVideo");
+
+      async function pushStream(answer) {
+        pc1.setRemoteDescription(answer);
+      }
+
+
+      window.onload = async () => {
+        const localStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+
+        localVideo.srcObject = localStream;
+        localStream
+          .getTracks()
+          .forEach((track) => pc1.addTrack(track, localStream));
+
+        const offer = await pc1.createOffer();
+        pc1.setLocalDescription(offer);
+        console.warn("pc1 offer", offer);
+        // pullStream(offer);
+      };
+    </script>
+  </body>
+</html>
